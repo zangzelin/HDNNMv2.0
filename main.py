@@ -36,17 +36,17 @@ def CreateJssp(number_of_problem, index_cpu, m, n, timehigh, timelow):
 
         # solute the problem with two method, you can change it
         # if you do not the the ortools wheels, choose the GA method
-        prob.SoluteWithGaAndSaveToFile('data', 0)
-        # prob.SoluteWithBBMAndSaveToFile('data', 0)
+        prob.SoluteWithGaAndSaveToFile('bigdata/data', 0)
+        # prob.SoluteWithBBMAndSaveToFile('bigdata/data', 0)
 
         # print the information of the problem and the solution, and save it in to the file 'bigdata/'
-        prob.Print_info()
+        # prob.Print_info()
         sub_list = prob.subproblem()
         for i, subp in enumerate(sub_list):
-            subp.SaveFeaturesToFile('feature', i)
-            info = subp.SaveLablesToFile('feature', i)
+            subp.SaveFeaturesToFile('bigdata/feature', i)
+            info = subp.SaveLablesToFile('bigdata/feature', i)
 
-    pbar.finish()
+    pbar.finish() 
 
     return info
 
@@ -62,17 +62,18 @@ def main_train_ann(index_cpu, m, n, timehigh, timelow, loop):
     #   loop: the max loop of the training, you can change it
 
     format_of_ann = [11, 22, 220, 220, 220, 220, 220, 220, 50, 22, n]
+
     ann_model = NnNetwork.NeuralNetwork(timelow, timehigh,
-                                        'Ann', format_of_ann, batch_size=25*3, m=m, n=n)
+                                        format_of_ann, batch_size=25*3, m=m, n=n)
 
     # Load the data created in function CreateJssp()
     ann_model.LoadData(info)
 
     # Train the network
-    ann_model.TrainAnn(loop)
+    ann_model.TrainNetwork(loop)
 
     # save the ann model into bigdata
-    ann_model.SaveModel()
+    ann_model.SaveNetwork()
 
 
 def TestAnnModel(m, n, timehigh, timelow):
@@ -89,10 +90,10 @@ def TestAnnModel(m, n, timehigh, timelow):
     # init a new ann model 
     format_of_ann = [11, 22, 220, 220, 220, 220, 220, 220, 50, 22, n]
     ann_model = NnNetwork.NeuralNetwork(timelow, timehigh,
-                                        'Ann', format_of_ann, batch_size=64, m=m, n=n)
-    
+                                        format_of_ann, batch_size=25*3, m=m, n=n)
+
     # load the parmater in '\bigdata'
-    ann_model.LoadModel('model_type=Ann_m={}_n={}time=0.h5'.format(m, n))
+    ann_model.LoadNetwork('model_type=Ann_m={}_n={}time=0.h5'.format(5, 5))
 
     # test the model with 200 different new jobshop problem 
     best, out = ann_model.TestTheNetworkRandomlyntimes(200)
@@ -112,17 +113,17 @@ def main_train_HDNNM(index_cpu, m, n, timehigh, timelow, loop, L1, L2):
     #   L1: the parmater use to control the format of the model
     #   L2: the parmater use to control the format of the model
 
-    hdnnm_model = NnNetwork.NeuralNetwork(
-        timelow=timelow, timehigh=timehigh, type='HDNNM', number_of_n=[
-            11, 22, 22, 22, 22, n], batch_size=64, m=m, n=n, L1=L1, L2=L2
+    HDNNM_model = NnNetwork.HDNNM(
+        timelow=timelow, timehigh=timehigh, format_of_network=[
+            11, 22, 22, 22, 22, n], batch_size=64, m=m, n=n, L=[L1,L2]
     )
 
     # Load the data created in function CreateJssp()
-    hdnnm_model.LoadData(info)
+    HDNNM_model.LoadData(info)
     # Train the network
-    hdnnm_model.TrainAnn(loop)
+    HDNNM_model.TrainNetwork(loop)
     # save the ann model into bigdata
-    hdnnm_model.SaveModel()
+    HDNNM_model.SaveNetwork()
 
 
 def main_loadmodel_and_predict_HDNNM(m, n, timehigh, timelow, L1, L2):
@@ -135,15 +136,15 @@ def main_loadmodel_and_predict_HDNNM(m, n, timehigh, timelow, L1, L2):
 
     info = 'm={}_n={}_timehigh={}_timelow={}_pool={}.txt'.format(
         m, n, timehigh, timelow, pool)
-    ann_model = NnNetwork.NeuralNetwork(
-        timelow=timelow, timehigh=timehigh, type='HDNNM', number_of_n=[
-            11, 22, 22, 22, 22, n], batch_size=64, m=m, n=n, L1=L1, L2=L2
+    HDNNM_model = NnNetwork.HDNNM(
+        timelow=timelow, timehigh=timehigh, format_of_network=[
+            11, 22, 22, 22, 22, n], batch_size=64, m=m, n=n, L=[L1,L2]
     )
     
-    ann_model.LoadModel('model_type=HDNNM_m={}_n={}time=0.h5'.format(m, n))
+    HDNNM_model.LoadNetwork('model_type=HDNNM_m={}_n={}time=0.h5'.format(m, n))
     
     # test the model with 200 different new jobshop problem 
-    best, out = ann_model.TestTheNetworkRandomlyntimes(200)
+    best, out = HDNNM_model.TestTheNetworkRandomlyntimes(200)
 
     print(best.sum()/out.sum())
 
@@ -172,26 +173,15 @@ def TrainAndTestHDNNM(m, n, timehigh, timelow, loop, L1, L2):
     f.writelines('{},{},{},{},{},{},{},{} \n'.format(
         m, n, timehigh, timelow, loop, L1, L2, result))
 
-
-if __name__ == "__main__":
-
+def GridSearch():
     m = 5
     n = 5
     timehigh = 30
     timelow = 15
     pool = 0
-
-    # info = CreateJssp(600, pool, m, n, timehigh, timelow)
-    # print('finish')
+    
     info = 'm={}_n={}_timehigh={}_timelow={}_pool={}.txt'.format(
         m, n, timehigh, timelow, pool)
-    # main_train_ann(0, m, n, timehigh, timelow, 15)
-    # main_loadmodel_and_predict_ann( m, n, timehigh, timelow)
-
-    # main_train_HDNNM(0, m, n, timehigh, timelow, 12, 3, 3)
-    # main_loadmodel_and_predict_HDNNM(m, n, timehigh, timelow, L1 = 3, L2 = 3)
-    
-    
     for L1 in range(1, 10):
         for L2 in range(1, 10):
             TrainAndTestHDNNM(m, n, timehigh, timelow, 15, L1, L2)
@@ -199,3 +189,24 @@ if __name__ == "__main__":
             TrainAndTestHDNNM(m, n, timehigh, timelow, 15, L1, L2)
             TrainAndTestHDNNM(m, n, timehigh, timelow, 15, L1, L2)
             TrainAndTestHDNNM(m, n, timehigh, timelow, 15, L1, L2)
+        
+if __name__ == "__main__":
+
+    m = 15
+    n = 15
+    timehigh = 40
+    timelow = 15
+    pool = 0
+
+    # info = CreateJssp(100, pool, m, n, timehigh, timelow)
+    # print('finish')
+    info = 'm={}_n={}_timehigh={}_timelow={}_pool={}.txt'.format(
+        m, n, timehigh, timelow, pool)
+    # main_train_ann(0, m, n, timehigh, timelow, 15)
+    # TestAnnModel( 7, 5, timehigh, timelow)
+
+    main_train_HDNNM(0, m, n, timehigh, timelow, 12, 3, 3)
+    main_loadmodel_and_predict_HDNNM(m, n, timehigh, timelow, L1 = 3, L2 = 3)
+    
+    
+

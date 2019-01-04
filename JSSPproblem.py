@@ -61,7 +61,7 @@ class Problem:
                     self.p[i,:] = a
                     sum_time_of_job[i],sum_time_of_job[j] = sum_time_of_job[j],sum_time_of_job[i] 
         
-        sum_time_of_mach = [[i,0] for i in range(n)]
+        sum_time_of_mach = [[i,0] for i in range(m)]
         for i in range(n):
             for j in range(m):
                 sum_time_of_mach[self.r[i,j]][1] += self.p[i,j]
@@ -72,10 +72,10 @@ class Problem:
                     sum_time_of_mach[i], sum_time_of_mach[j] = sum_time_of_mach[j], sum_time_of_mach[i]
 
         nr = np.zeros((n,m),dtype=int)-1
-        for i in range(n):
+        for i in range(m):
             nr[self.r==i] =sum_time_of_mach[i][0]
 
-        sum_time_of_mach = [[i,0] for i in range(n)]
+        sum_time_of_mach = [[i,0] for i in range(m)]
         for i in range(n):
             for j in range(m):
                 sum_time_of_mach[self.r[i,j]][1] += self.p[i,j]    
@@ -122,6 +122,7 @@ class Problem:
     def SoluteWithBBM(self):
 
         solver = pywrapcp.Solver('jobshop')
+        solver.TimeLimit(1)
 
         all_machines = range(0, self.m)
         all_jobs = range(0, self.n)
@@ -176,7 +177,6 @@ class Problem:
         # Create the solution collector.
         collector = solver.LastSolutionCollector()
 
-        solver.SolutionsLimit(3)
 
         # Add the interesting variables to the SolutionCollector.
         collector.Add(all_sequences)

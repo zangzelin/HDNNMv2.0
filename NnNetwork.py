@@ -98,85 +98,47 @@ class LossHistory(keras.callbacks.Callback):
 
 
 class NeuralNetwork:
-    number_of_machines = 0
-    number_of_jobs = 0
-    number_of_jobs_2 = 0
-    model = []
+
+    number_of_machines = None
+    number_of_jobs = None
+    number_of_jobs_2 = None
+    model = None
     layer = None
-    number_of_n = [11, 11, 11, 11, 8]
-    type = ''
-    L1 = None
-    L2 = None
+    number_of_n = None
     batch_size = None
     correct = None
     number_of_1D_feature = None
-    features_1D_list = []
+    features_1D_list = None
     timelow = None
     timehigh = None
     len_feature_1d = None
     len_feature_nm = None
 
-    train_feature_1d = []
-    train_feature_2d1 = []
-    train_feature_2d2 = []
-    train_feature_2d3 = []
-    train_feature_2d4 = []
-    train_feature_2d5 = []
-    train_feature_2d6 = []
-    train_label = []
-
-    test_feature_1d = []
-    test_feature_2d1 = []
-    test_feature_2d2 = []
-    test_feature_2d3 = []
-    test_feature_2d4 = []
-    test_feature_2d5 = []
-    test_feature_2d6 = []
-    test_label = []
-
-    number_of_data = []
-    number_of_class = []
-    label_list = []
-    features_2D_1 = []
-    features_2D_2 = []
-    features_2D_3 = []
-    features_2D_4 = []
-    features_2D_5 = []
-    features_2D_6 = []
+    train_feature_1d = None
+    train_label = None
+    test_feature_1d = None
+    test_label = None
+    number_of_data = None
+    number_of_class = None
+    label_list = None
 
     # epochs = 20
 
-    def __init__(self, timelow, timehigh, type, number_of_n, batch_size, m, n, L1=0, L2=0):
-        self.type = type
+    def __init__(self, timelow, timehigh, format_of_network, batch_size, m, n):
+        self.type = "Ann"
         self.number_of_machines = m
         self.number_of_jobs = n
         self.number_of_jobs_2 = n*n
-        self.len_feature_1d = number_of_n[0]
+        self.len_feature_1d = format_of_network[0]
         self.len_feature_nm = m * n
         self.timehigh = timehigh
         self.timelow = timelow
-        # self.history = LossHistory()
+        self.layer = len(format_of_network)-3
+        self.number_of_n = format_of_network
+        self.batch_size = batch_size
+        self.model = self.CreateNetwork()
 
-        if self.type == 'Ann':
-            self.layer = len(number_of_n)-3
-            self.number_of_n = number_of_n
-            self.batch_size = batch_size
-
-            self.model = self.CreateANN()
-
-        elif self.type == 'HDNNM':
-
-            self.layer = [len(number_of_n)-3, len(number_of_n)-3]
-            self.number_of_n = number_of_n
-            self.batch_size = batch_size
-            self.L1 = L1
-            self.L2 = L2
-            self.model = self.CreateHDNNM()
-
-        else:
-            raise NameError('the type of the network have to be Ann or HDNNM')
-
-    def CreateANN(self):
+    def CreateNetwork(self):
 
         input1 = Input(shape=(self.number_of_n[0], ), name='i1')
         mid = Dense(self.number_of_n[1],
@@ -194,171 +156,30 @@ class NeuralNetwork:
                     name='out')(mid)
 
         model = Model(input1, out)
-        # sgd = keras.optimizers.SGD(
-        #     lr=0.11, momentum=0.0, decay=0.0, nesterov=False)
         model.compile(optimizer='rmsprop', loss='mse', metrics=['mae'])
 
         model.summary()
 
         return model
 
-    def CreateHDNNM(self):
+    def TrainNetwork(self, epochs):
+        self.model.fit(
+            [self.train_feature_1d],
+            self.train_label,
+            batch_size=self.batch_size,
+            epochs=epochs,
+            shuffle=True,
+            verbose=1,
+            validation_data=([self.test_feature_1d], self.test_label),
+        )
 
-        input_1d = Input(shape=(self.number_of_n[0], 1), name='i1d')
-        input_2d1 = Input(shape=(self.number_of_jobs_2,
-                                 self.number_of_jobs_2, 1), name='i2d1')
-        input_2d2 = Input(shape=(self.number_of_jobs_2,
-                                 self.number_of_jobs, 1), name='i2d2')
-        input_2d3 = Input(shape=(self.number_of_jobs_2,
-                                 self.len_feature_1d, 1), name='i2d3')
-        input_2d4 = Input(shape=(self.number_of_jobs,
-                                 self.number_of_jobs, 1), name='i2d4')
-        input_2d5 = Input(shape=(self.number_of_jobs,
-                                 self.len_feature_1d, 1), name='i2d5')
-        input_2d6 = Input(shape=(self.len_feature_1d,
-                                 self.len_feature_1d, 1), name='i2d6')
-
-        mid_1d = Dense(self.number_of_n[1],
-                       activation='relu', use_bias=True)(input_1d)
-        mid_2d1 = Conv2D(3, (3, 3), padding='same')(input_2d1)
-        mid_2d2 = Conv2D(3, (3, 3), padding='same')(input_2d2)
-        mid_2d3 = Conv2D(3, (3, 3), padding='same')(input_2d3)
-        mid_2d4 = Conv2D(3, (3, 3), padding='same')(input_2d4)
-        mid_2d5 = Conv2D(3, (3, 3), padding='same')(input_2d5)
-        mid_2d6 = Conv2D(3, (3, 3), padding='same')(input_2d6)
-
-        for i in range(self.L1):
-            mid_1d = Dense(self.number_of_n[1],
-                           activation='relu', use_bias=True)(mid_1d)
-            mid_2d1 = Conv2D(3, (3, 3), padding='same')(mid_2d1)
-            mid_2d2 = Conv2D(3, (3, 3), padding='same')(mid_2d2)
-            mid_2d3 = Conv2D(3, (3, 3), padding='same')(mid_2d3)
-            mid_2d4 = Conv2D(3, (3, 3), padding='same')(mid_2d4)
-            mid_2d5 = Conv2D(3, (3, 3), padding='same')(mid_2d5)
-            mid_2d6 = Conv2D(3, (3, 3), padding='same')(mid_2d6)
-
-        Fla_mid_1d = Flatten()(mid_1d)
-        Fla_mid_2d1 = Flatten()(mid_2d1)
-        Fla_mid_2d2 = Flatten()(mid_2d2)
-        Fla_mid_2d3 = Flatten()(mid_2d3)
-        Fla_mid_2d4 = Flatten()(mid_2d4)
-        Fla_mid_2d5 = Flatten()(mid_2d5)
-        Fla_mid_2d6 = Flatten()(mid_2d6)
-
-        con = concatenate([Fla_mid_1d,
-                           Fla_mid_2d1, Fla_mid_2d2, Fla_mid_2d3, Fla_mid_2d4, Fla_mid_2d5, Fla_mid_2d6])
-
-        mid_a = Dense(100, activation='sigmoid', use_bias=True)(con)
-
-        for i in range(self.L2):
-            mid_a = Dense(10, activation='sigmoid', use_bias=True)(mid_a)
-            mid_a = Dropout(0.05)(mid_a)
-
-        out = Dense(1, activation='relu',
-                    name='out', use_bias=True)(mid_a)
-
-        model = Model([input_1d, input_2d1, input_2d2, input_2d3,
-                       input_2d4, input_2d5, input_2d6], out)
-        # sgd = keras.optimizers.SGD(
-        #     lr=0.11, momentum=0.0, decay=0.0, nesterov=False)
-
-        # model.compile(loss='categorical_crossentropy',  # 对数损失
-        #               optimizer='adam',
-        #               metrics=['accuracy'])
-
-        sgd1 = keras.optimizers.SGD(
-            lr=0.01, momentum=0.0, decay=0.0, nesterov=False)
-        # model.compile(loss='mean_squared_error',  # 对数损失
-        #               optimizer=sgd1,
-        #               metrics=['accuracy'])
-        model.compile(optimizer='rmsprop', loss='mse', metrics=['mae'])
-        model.summary()
-
-        return model
-
-    def TrainAnn(self, epochs):
-
-        if self.type == 'Ann':
-            self.model.fit(
-                [self.train_feature_1d], self.train_label, batch_size=self.batch_size, epochs=epochs,
-                shuffle=True,
-                # callbacks=[self.history]
-                verbose=1, validation_data=([self.test_feature_1d], self.test_label),
-            )
-
-        elif self.type == 'HDNNM':
-
-            tf1 = [self.train_feature_1d.reshape((-1, self.len_feature_1d, 1)), self.train_feature_2d1, self.train_feature_2d2,
-                   self.train_feature_2d3, self.train_feature_2d4, self.train_feature_2d5, self.train_feature_2d6]
-
-            tl = [self.test_feature_1d.reshape((-1, self.len_feature_1d, 1)), self.test_feature_2d1, self.test_feature_2d2,
-                  self.test_feature_2d3, self.test_feature_2d4, self.test_feature_2d5, self.test_feature_2d6]
-
-            self.model.fit(
-                tf1, self.train_label, batch_size=self.batch_size, epochs=epochs,
-                # callbacks=[self.history]
-                verbose=1, validation_data=(tl, self.test_label),
-            )
-
-        else:
-            raise NameError('the type of the network have to be Ann or HDNNM')
-
-        # acc,loss,hismak = self.history.loss_plot('epoch')
-        # np.savetxt('acc_L1:{}_L2:{}.csv'.format(self.L1,self.L2), acc, delimiter=',')
-        # np.savetxt('loss_L1:{}_L2:{}.csv'.format(self.L1,self.L2), loss, delimiter=',')
-        # np.savetxt('hismak_L1:{}_L2:{}.csv'.format(self.L1,self.L2), hismak, delimiter=',')
-
-    def savenetwork(self):
-        # This function is used to save the the medol trained above
-
-        time_now = int(time.time())
-        time_local = time.localtime(time_now)
-        time1 = time.strftime("%Y_%m_%d::%H_%M_%S", time_local)
-        savename = 'model/ann_stru={}_time={}_correct={}_L1:{}_L2:{}.h5'.format(
-            ''.join(self.number_of_n), time1, self.correct, self.L1, self.L2)
-        self.model.save(savename)
-        return savename
-
-    def normalize_1d_feature(self):
+    def Normalize1dFeature(self):
         # self.features_1D_list
         self.number_of_1D_feature = self.features_1D_list.shape[1]
         for i in range(self.number_of_1D_feature):
             Fitem = self.features_1D_list[:, i]
             self.features_1D_list[:, i] = (
                 Fitem - np.min(Fitem))/(np.max(Fitem) - np.min(Fitem))
-
-    def GetConfusionMatraxOnce(self):
-        prob = JSSPproblem.Problem(
-            self.number_of_machines, self.number_of_jobs, time_low=self.timelow, time_high=self.timehigh)
-        prob.SoluteWithBBM()
-        X_optimal = prob.GetIndexMatrix()
-
-        if self.type == "Ann":
-            featrues = prob.GetFeaturesInTest1D()
-        else:
-            featrues = prob.GetFeaturesInTest1D2D()
-
-        output = self.PredictWithnetwork(featrues)
-        prob.SchedulingSequenceGenerationMethod(output)
-        X_solution = prob.GetIndexMatrix()
-
-        confusion_matrix = np.zeros((self.number_of_jobs, self.number_of_jobs))
-
-        for i in range(self.number_of_machines):
-            for j in range(self.number_of_jobs):
-                right = int(X_optimal[i, j])
-                predict = int(X_solution[i, j])
-                confusion_matrix[right, predict] += 1
-
-        return confusion_matrix
-
-    def GetConfusionMatraxNTimes(self, times):
-        confusion_matrix = np.zeros((self.number_of_jobs, self.number_of_jobs))
-
-        for i in range(times):
-            confusion_matrix += self.GetConfusionMatraxOnce()
-
-        return confusion_matrix
 
     def LoadData(self, info):
 
@@ -516,18 +337,17 @@ class NeuralNetwork:
                             normalize_parmter[i, j, 0]
         return data, normalize_parmter
 
-    def SaveModel(self):
+    def SaveNetwork(self):
 
         name = 'model_type={}_m={}_n={}time={}.h5'.format(
             self.type, self.number_of_machines, self.number_of_jobs, 0)
-        if self.type == "HDNNM":
-            name = 'model_type={}_m={}_n={}time={}L1_{}L2_{}.h5'.format(
-                self.type, self.number_of_machines, self.number_of_jobs, 0,self.L1,self.L2)            
+
         self.model.save('bigdata/model/'+name)
         # save the normalize
 
         name1 = 'bigdata/model/normalize_parm_type={}_m={}_n={}time={}.txt'.format(
             self.type, self.number_of_machines, self.number_of_jobs, 0)
+
         f = open(name1, 'a')
         f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_1D))
         f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_1))
@@ -537,10 +357,11 @@ class NeuralNetwork:
         f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_5))
         f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_6))
         f.close()
+
         print('finish save the model')
         return name
 
-    def LoadModel(self, path):
+    def LoadNetwork(self, path):
 
         name = 'bigdata/model/'+path
         self.model = keras.models.load_model(name)
@@ -586,33 +407,16 @@ class NeuralNetwork:
 
     def PredictWithnetwork(self, input):
 
-        if self.type == 'Ann':
-            for i in range(11):
-                if self.normalize_par_1D[i, 1] < 0.01:
-                    input[:, i] = 0
-                else:
-                    # input[:, i] = (input[:, i]-self.normalize_par_1D[i, 0]
-                    #                ) / self.normalize_par_1D[i, 1]
-                    input[:, i] = input[:, i] / \
-                        self.normalize_par_1D[i, 1]-self.normalize_par_1D[i, 0]
-            output = self.model.predict(input)
+        for i in range(11):
+            if self.normalize_par_1D[i, 1] < 0.01:
+                input[:, i] = 0
+            else:
+                # input[:, i] = (input[:, i]-self.normalize_par_1D[i, 0]
+                #                ) / self.normalize_par_1D[i, 1]
+                input[:, i] = input[:, i] / \
+                    self.normalize_par_1D[i, 1]-self.normalize_par_1D[i, 0]
+        output = self.model.predict(input)
 
-        elif self.type == 'HDNNM':
-
-            for i in range(11):
-                if self.normalize_par_1D[i, 1] < 0.01:
-                    input[0][:, i] = 0
-                else:
-                    input[0][:, i] = input[0][:, i] / \
-                        self.normalize_par_1D[i, 1]-self.normalize_par_1D[i, 0]
-
-            input[1] = self.NormalWithParm(self.normalize_par_2D_1, input[1])
-            input[2] = self.NormalWithParm(self.normalize_par_2D_2, input[2])
-            input[3] = self.NormalWithParm(self.normalize_par_2D_3, input[3])
-            input[4] = self.NormalWithParm(self.normalize_par_2D_4, input[4])
-            input[5] = self.NormalWithParm(self.normalize_par_2D_5, input[5])
-            input[6] = self.NormalWithParm(self.normalize_par_2D_6, input[6])
-            output = self.model.predict(input)
         return output
 
     def NormalWithParm(self, parm, input):
@@ -644,10 +448,7 @@ class NeuralNetwork:
         best_mak = prob.GetMakespan()
         # prob.PlotResult()
 
-        if self.type == "Ann":
-            featrues = prob.GetFeaturesInTest1D()
-        else:
-            featrues = prob.GetFeaturesInTest1D2D()
+        featrues = prob.GetFeaturesInTest1D()
 
         output = self.PredictWithnetwork(featrues)
         # prob.SchedulingSequenceGenerationMethod(output)
@@ -673,11 +474,185 @@ class NeuralNetwork:
         return np.array(best_makspan_list), np.array(out_makspan_list)
 
 
-# def main(dataset='featureandlable_traindata_m=8_n=8_timelow=6_timehight=30_numofloop=1000.csv'):
+class HDNNM(NeuralNetwork):
+    number_of_machines = None
+    number_of_jobs = None
+    number_of_jobs_2 = None
+    model = None
+    layer = None
+    number_of_n = None
+    batch_size = None
+    correct = None
+    number_of_1D_feature = None
+    features_1D_list = None
+    timelow = None
+    timehigh = None
+    len_feature_1d = None
+    len_feature_nm = None
 
-#     # ann_model = NeuralNetwork('Ann', [11, 22, 22, 22, 22, 4], batch_size=64)
-#     ann_model.LoadData('')
-#     ann_model.TrainAnn(1000)
+    train_feature_1d = None
+    train_label = None
+    test_feature_1d = None
+    test_label = None
+    number_of_data = None
+    number_of_class = None
+    label_list = None
+
+    def __init__(self, timelow, timehigh, format_of_network, batch_size, m, n, L):
+        self.type = "HDNNM"
+        self.number_of_machines = m
+        self.number_of_jobs = n
+        self.number_of_jobs_2 = n*n
+        self.len_feature_1d = format_of_network[0]
+        self.len_feature_nm = m * n
+        self.timehigh = timehigh
+        self.timelow = timelow
+        self.layer = len(format_of_network)-3
+        self.number_of_n = format_of_network
+        self.batch_size = batch_size
+        self.L1, self.L2 = L
+        self.model = self.CreateNetwork()
+
+    def CreateNetwork(self):
+
+        input_1d = Input(shape=(self.number_of_n[0], 1), name='i1d')
+        input_2d1 = Input(shape=(self.number_of_jobs_2,
+                                 self.number_of_jobs_2, 1), name='i2d1')
+        input_2d2 = Input(shape=(self.number_of_jobs_2,
+                                 self.number_of_jobs, 1), name='i2d2')
+        input_2d3 = Input(shape=(self.number_of_jobs_2,
+                                 self.len_feature_1d, 1), name='i2d3')
+        input_2d4 = Input(shape=(self.number_of_jobs,
+                                 self.number_of_jobs, 1), name='i2d4')
+        input_2d5 = Input(shape=(self.number_of_jobs,
+                                 self.len_feature_1d, 1), name='i2d5')
+        input_2d6 = Input(shape=(self.len_feature_1d,
+                                 self.len_feature_1d, 1), name='i2d6')
+
+        mid_1d = Dense(self.number_of_n[1],
+                       activation='relu', use_bias=True)(input_1d)
+        mid_2d1 = Conv2D(3, (3, 3), padding='same')(input_2d1)
+        mid_2d2 = Conv2D(3, (3, 3), padding='same')(input_2d2)
+        mid_2d3 = Conv2D(3, (3, 3), padding='same')(input_2d3)
+        mid_2d4 = Conv2D(3, (3, 3), padding='same')(input_2d4)
+        mid_2d5 = Conv2D(3, (3, 3), padding='same')(input_2d5)
+        mid_2d6 = Conv2D(3, (3, 3), padding='same')(input_2d6)
+
+        for i in range(self.L1):
+            mid_1d = Dense(self.number_of_n[1],
+                           activation='relu', use_bias=True)(mid_1d)
+            mid_2d1 = Conv2D(3, (3, 3), padding='same')(mid_2d1)
+            mid_2d2 = Conv2D(3, (3, 3), padding='same')(mid_2d2)
+            mid_2d3 = Conv2D(3, (3, 3), padding='same')(mid_2d3)
+            mid_2d4 = Conv2D(3, (3, 3), padding='same')(mid_2d4)
+            mid_2d5 = Conv2D(3, (3, 3), padding='same')(mid_2d5)
+            mid_2d6 = Conv2D(3, (3, 3), padding='same')(mid_2d6)
+
+        Fla_mid_1d = Flatten()(mid_1d)
+        Fla_mid_2d1 = Flatten()(mid_2d1)
+        Fla_mid_2d2 = Flatten()(mid_2d2)
+        Fla_mid_2d3 = Flatten()(mid_2d3)
+        Fla_mid_2d4 = Flatten()(mid_2d4)
+        Fla_mid_2d5 = Flatten()(mid_2d5)
+        Fla_mid_2d6 = Flatten()(mid_2d6)
+
+        con = concatenate([Fla_mid_1d,
+                           Fla_mid_2d1, Fla_mid_2d2, Fla_mid_2d3, Fla_mid_2d4, Fla_mid_2d5, Fla_mid_2d6])
+
+        mid_a = Dense(100, activation='sigmoid', use_bias=True)(con)
+
+        for i in range(self.L2):
+            mid_a = Dense(10, activation='sigmoid', use_bias=True)(mid_a)
+            mid_a = Dropout(0.05)(mid_a)
+
+        out = Dense(1, activation='relu',
+                    name='out', use_bias=True)(mid_a)
+
+        model = Model([input_1d, input_2d1, input_2d2, input_2d3,
+                       input_2d4, input_2d5, input_2d6], out)
+
+        sgd1 = keras.optimizers.SGD(
+            lr=0.01, momentum=0.0, decay=0.0, nesterov=False)
+        model.compile(optimizer='rmsprop', loss='mse', metrics=['mae'])
+        model.summary()
+
+        return model
+
+    def TrainNetwork(self, epochs):
+
+        tf1 = [self.train_feature_1d.reshape((-1, self.len_feature_1d, 1)), self.train_feature_2d1, self.train_feature_2d2,
+               self.train_feature_2d3, self.train_feature_2d4, self.train_feature_2d5, self.train_feature_2d6]
+
+        tl = [self.test_feature_1d.reshape((-1, self.len_feature_1d, 1)), self.test_feature_2d1, self.test_feature_2d2,
+              self.test_feature_2d3, self.test_feature_2d4, self.test_feature_2d5, self.test_feature_2d6]
+
+        self.model.fit(
+            tf1, self.train_label, batch_size=self.batch_size, epochs=epochs,
+            # callbacks=[self.history]
+            verbose=1, validation_data=(tl, self.test_label),
+        )
+
+    def SaveNetwork(self):
+
+        name = 'model_type={}_m={}_n={}time={}L1_{}L2_{}.h5'.format(
+            self.type, self.number_of_machines, self.number_of_jobs, 0, self.L1, self.L2)
+        self.model.save('bigdata/model/'+name)
+        # save the normalize
+
+        name1 = 'bigdata/model/normalize_parm_type={}_m={}_n={}time={}.txt'.format(
+            self.type, self.number_of_machines, self.number_of_jobs, 0)
+
+        f = open(name1, 'a')
+        f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_1D))
+        f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_1))
+        f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_2))
+        f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_3))
+        f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_4))
+        f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_5))
+        f.write(JSSPproblem.TranslateNpToStr(self.normalize_par_2D_6))
+        f.close()
+
+        print('finish save the model')
+        return name
+
+    def PredictWithnetwork(self, input):
+
+        for i in range(11):
+            if self.normalize_par_1D[i, 1] < 0.01:
+                input[0][:, i] = 0
+            else:
+                input[0][:, i] = input[0][:, i] / \
+                    self.normalize_par_1D[i, 1]-self.normalize_par_1D[i, 0]
+
+        input[1] = self.NormalWithParm(self.normalize_par_2D_1, input[1])
+        input[2] = self.NormalWithParm(self.normalize_par_2D_2, input[2])
+        input[3] = self.NormalWithParm(self.normalize_par_2D_3, input[3])
+        input[4] = self.NormalWithParm(self.normalize_par_2D_4, input[4])
+        input[5] = self.NormalWithParm(self.normalize_par_2D_5, input[5])
+        input[6] = self.NormalWithParm(self.normalize_par_2D_6, input[6])
+        output = self.model.predict(input)
+        return output
+
+    def TestTheNetworkRandomlyOnce(self):
+
+        prob = JSSPproblem.Problem(
+            self.number_of_machines, self.number_of_jobs, time_low=self.timelow, time_high=self.timehigh)
+        prob.SoluteWithBBM()
+        best_mak = prob.GetMakespan()
+
+        featrues = prob.GetFeaturesInTest1D2D()
+
+        output = self.PredictWithnetwork(featrues)
+        # prob.SchedulingSequenceGenerationMethod(output)
+        # s = prob.CalculateSimilarityDegree()
+        # print('SchedulingSequenceGenerationMethod:',s)
+        prob.PriorityQueuingMethod(output)
+        s = prob.CalculateSimilarityDegree()
+        print('similary:', s)
+        ann_mak = prob.GetMakespan()
+        # prob.PlotResult()
+        # plt.show()
+        return best_mak, ann_mak
 
 
 if __name__ == '__main__':
