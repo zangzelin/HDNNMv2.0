@@ -68,15 +68,15 @@ class Subproblem:
         T_item = self.time
         order_of_procedure_in_machine = self.CheckOrderInMachine()
 
-        features[0] = self.procedure  # 加工顺序
-        features[1] = T_item  # 当前机器当前工序加工时间
+        features[0] = self.procedure / self.father_problem.n # 加工顺序
+        features[1] = T_item/ T_total  # 当前机器当前工序加工时间
 
         features[2] = self.father_problem.p[self.job_id, # 当前工件已经加工的时间
                                             :self.procedure].sum() / T_job 
         features[3] = self.father_problem.p[self.job_id, # 当前工件剩余加工时间
                                              self.procedure:].sum() / T_job 
 
-        features[5] = self.job_id
+        features[5] = self.job_id/self.father_problem.n
         # features[4] = T_total/1000
         # features[4] = T_item/T_total
         # features[5] = T_item/T_machine
@@ -88,7 +88,7 @@ class Subproblem:
         features[10] = order_of_procedure_in_machine/self.father_problem.n
         # features[4] = self.father_problem.p[self.job_id,
         #                                     :self.procedure].sum()/T_job
-        features[4] = self.machine_id
+        features[4] = self.machine_id/self.father_problem.m
         # features[4] = self.father_problem.e[self.machine_id,
         #                                     self.order_in_machine]
 

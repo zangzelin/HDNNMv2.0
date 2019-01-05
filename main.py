@@ -36,8 +36,8 @@ def CreateJssp(number_of_problem, index_cpu, m, n, timehigh, timelow):
 
         # solute the problem with two method, you can change it
         # if you do not the the ortools wheels, choose the GA method
-        prob.SoluteWithGaAndSaveToFile('bigdata/data', 0)
-        # prob.SoluteWithBBMAndSaveToFile('bigdata/data', 0)
+        # prob.SoluteWithGaAndSaveToFile('bigdata/data', 0)
+        prob.SoluteWithBBMAndSaveToFile('bigdata/data', 0)
 
         # print the information of the problem and the solution, and save it in to the file 'bigdata/'
         # prob.Print_info()
@@ -141,7 +141,7 @@ def main_loadmodel_and_predict_HDNNM(m, n, timehigh, timelow, L1, L2):
             11, 22, 22, 22, 22, n], batch_size=64, m=m, n=n, L=[L1,L2]
     )
     
-    HDNNM_model.LoadNetwork('model_type=HDNNM_m={}_n={}time=0.h5'.format(m, n))
+    HDNNM_model.LoadNetwork('model_type=HDNNM_m={}_n={}time=0'.format(m, n),L1,L2)
     
     # test the model with 200 different new jobshop problem 
     best, out = HDNNM_model.TestTheNetworkRandomlyntimes(200)
@@ -150,6 +150,29 @@ def main_loadmodel_and_predict_HDNNM(m, n, timehigh, timelow, L1, L2):
 
     return best.sum()/out.sum()
 
+def TestwithditterentM(m, n, timehigh, timelow, L1, L2,TestM):
+    # Test the model, and solute the new problem
+    # Input:
+    #   m: the number of the machine in jobshop problem
+    #   n: the number of the job in the job problem
+    #   timehigh: the max producing time of the job's one processing
+    #   timelow: the min producing time of the job's one processing
+
+    info = 'm={}_n={}_timehigh={}_timelow={}_pool={}.txt'.format(
+        m, n, timehigh, timelow, pool)
+    HDNNM_model = NnNetwork.HDNNM(
+        timelow=timelow, timehigh=timehigh, format_of_network=[
+            11, 22, 22, 22, 22, n], batch_size=64, m=TestM, n=n, L=[L1,L2]
+    )
+    
+    HDNNM_model.LoadNetwork('model_type=HDNNM_m={}_n={}time=0'.format(m, n),L1,L2)
+    
+    # test the model with 200 different new jobshop problem 
+    best, out = HDNNM_model.TestTheNetworkRandomlyntimes(200)
+
+    print(best.sum()/out.sum())
+
+    return best.sum()/out.sum()
 
 def ExampleInPaper():
     prob = JSSPproblem.Problem(m, n, time_low=timelow, time_high=timehigh)
@@ -192,14 +215,14 @@ def GridSearch():
         
 if __name__ == "__main__":
 
-    m = 15
-    n = 15
+    m = 5
+    n = 5
     timehigh = 40
     timelow = 15
     pool = 0
 
-    # info = CreateJssp(100, pool, m, n, timehigh, timelow)
-    # print('finish')
+    info = CreateJssp(100, pool, m, n, timehigh, timelow)
+    print('finish')
     info = 'm={}_n={}_timehigh={}_timelow={}_pool={}.txt'.format(
         m, n, timehigh, timelow, pool)
     # main_train_ann(0, m, n, timehigh, timelow, 15)
@@ -207,6 +230,7 @@ if __name__ == "__main__":
 
     main_train_HDNNM(0, m, n, timehigh, timelow, 12, 3, 3)
     main_loadmodel_and_predict_HDNNM(m, n, timehigh, timelow, L1 = 3, L2 = 3)
+    # TestwithditterentM(m, n, timehigh, timelow, L1 = 3, L2 = 3,TestM= 15)
     
     
 

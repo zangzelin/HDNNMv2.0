@@ -328,7 +328,7 @@ class NeuralNetwork:
                     normalize_parmter[i, j, 1] = (
                         np.max(data[:, i, j])-np.min(data[:, i, j]))/2
                     normalize_parmter[i, j, 0] = 1 + \
-                        np.min(data[:, i, j])/normalize_parmter[i, j, 1]
+                        np.min(data[:, i, j])/max(normalize_parmter[i, j, 1],0.001)
                     if normalize_parmter[i, j, 1] < 0.01:
                         data[:, i, j] = 0
                     else:
@@ -444,7 +444,8 @@ class NeuralNetwork:
 
         prob = JSSPproblem.Problem(
             self.number_of_machines, self.number_of_jobs, time_low=self.timelow, time_high=self.timehigh)
-        prob.SoluteWithBBM()
+        prob.SoluteWithGA()
+        # self.SoluteWithBBM()
         best_mak = prob.GetMakespan()
         # prob.PlotResult()
 
@@ -470,6 +471,10 @@ class NeuralNetwork:
             best_makspan, out_makspan = self.TestTheNetworkRandomlyOnce()
             best_makspan_list.append(best_makspan)
             out_makspan_list.append(out_makspan)
+            f = open("result/GAvsHDNNMInlarge.csv", 'a')
+            f.write('{},{},{},{} \n'.format(i, self.number_of_machines,
+                                         self.number_of_jobs, best_makspan/out_makspan))
+            f.close()
 
         return np.array(best_makspan_list), np.array(out_makspan_list)
 
@@ -615,6 +620,50 @@ class HDNNM(NeuralNetwork):
         print('finish save the model')
         return name
 
+    def LoadNetwork(self, path, L1, L2):
+
+        name = 'bigdata/model/'+path+'L1_{}L2_{}.h5'.format(L1, L2)
+        self.model = keras.models.load_model(name)
+        name1 = 'bigdata/model/normalize_parm' + path[5:-2] + '=0.txt'
+        f = open(name1, 'r')
+        for i in range(7):
+            line = f.readline()[:-3]
+            item_list = line.split(',')
+            parmlist = []
+            for index, item in enumerate(item_list):
+
+                num = float(item)
+                if index % 2 == 0:
+                    box = []
+                    box.append(num)
+                else:
+                    box.append(num)
+                    parmlist.append(box)
+            if i == 0:
+                self.normalize_par_1D = np.array(parmlist)
+            if i == 1:
+                self.normalize_par_2D_1 = np.array(parmlist).reshape(
+                    (self.number_of_jobs_2, self.number_of_jobs_2, 2))
+            if i == 2:
+                self.normalize_par_2D_2 = np.array(parmlist).reshape(
+                    (self.number_of_jobs_2, self.number_of_jobs, 2))
+            if i == 3:
+                self.normalize_par_2D_3 = np.array(parmlist).reshape(
+                    (self.number_of_jobs_2, self.len_feature_1d, 2))
+            if i == 4:
+                self.normalize_par_2D_4 = np.array(parmlist).reshape(
+                    (self.number_of_jobs, self.number_of_jobs, 2))
+            if i == 5:
+                self.normalize_par_2D_5 = np.array(parmlist).reshape(
+                    (self.number_of_jobs, self.len_feature_1d, 2))
+            if i == 6:
+                self.normalize_par_2D_6 = np.array(parmlist).reshape(
+                    (self.len_feature_1d, self.len_feature_1d, 2))
+            else:
+                pass
+
+        print('successful load model')
+
     def PredictWithnetwork(self, input):
 
         for i in range(11):
@@ -637,7 +686,9 @@ class HDNNM(NeuralNetwork):
 
         prob = JSSPproblem.Problem(
             self.number_of_machines, self.number_of_jobs, time_low=self.timelow, time_high=self.timehigh)
-        prob.SoluteWithBBM()
+        prob.SoluteWithGA()
+        # prob.SoluteWithBBM()
+        # prob.PlotResult()
         best_mak = prob.GetMakespan()
 
         featrues = prob.GetFeaturesInTest1D2D()
@@ -648,8 +699,8 @@ class HDNNM(NeuralNetwork):
         # print('SchedulingSequenceGenerationMethod:',s)
         prob.PriorityQueuingMethod(output)
         s = prob.CalculateSimilarityDegree()
-        print('similary:', s)
         ann_mak = prob.GetMakespan()
+        print('persent:', best_mak/ann_mak)
         # prob.PlotResult()
         # plt.show()
         return best_mak, ann_mak

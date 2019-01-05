@@ -459,7 +459,8 @@ class Problem:
         self.h = h
         self.e = e
         self.x = x
-        self.PlotResult()
+        self.best_x = x
+        # self.PlotResult()
         # plt.show()
 
     def PlotResult(self, num=0):
@@ -491,9 +492,9 @@ class Problem:
 
                 # % 填充
                 x1 = mPoint1
-                y1 = mText-1
+                y1 = mText-0.8
                 x2 = mPoint2
-                y2 = mText-1
+                y2 = mText-0.8
                 x3 = mPoint2
                 y3 = mText
                 x4 = mPoint1
@@ -854,8 +855,8 @@ def TranslateNpToStr(m):
 def PlotRec(mPoint1, mPoint2, mText):
 
     vPoint = np.zeros((4, 2))
-    vPoint[0, :] = [mPoint1, mText-1]
-    vPoint[1, :] = [mPoint2, mText-1]
+    vPoint[0, :] = [mPoint1, mText-0.8]
+    vPoint[1, :] = [mPoint2, mText-0.8]
     vPoint[2, :] = [mPoint1, mText]
     vPoint[3, :] = [mPoint2, mText]
     plt.plot([vPoint[0, 0], vPoint[1, 0]], [vPoint[0, 1], vPoint[1, 1]], 'k')
